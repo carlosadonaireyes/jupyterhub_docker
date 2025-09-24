@@ -6,15 +6,17 @@ services:
     build:
       context: .
       dockerfile: docker/jupyterhub.Dockerfile
-    ports:
-      - "8084:8084"
+    environment:
+      - JUPYTERHUB_IP
+      - JUPYTERHUB_PORT_INTERNAL
+      - JUPYTERHUB_DATA
+      - ADMIN_USERS
+      - OAUTH_CALLBACK_URL
+      - OAUTH_CLIENT_ID
+      - OAUTH_CLIENT_SECRET
     volumes:
       - jupyterhub-data:/data
       - jupyterhub-users:/home
-    environment:
-      - JUPYTERHUB_DATA=/data
-      - JUPYTERHUB_USERS_HOME=/home
-      - ADMIN_USERS=${ADMIN_USERS}
     networks:
       - jupyterhub-network
     restart: always
@@ -27,15 +29,13 @@ services:
     depends_on:
       - jupyterhub
     ports:
-      - "${JUPYTERHUB_PORT}:80"
-      - "443:443"
+      - "${JUPYTERHUB_PORT_EXTERNAL}:80"
     volumes:
       - ./certbot/www:/var/www/certbot/:ro
       - ./certbot/conf/:/etc/nginx/ssl/:ro
       - ./nginx.conf:/etc/nginx/nginx.conf
     environment:
-      - PROXY_TARGET_PORT=8084
-      - PROXY_PUBLIC_PORT=${JUPYTERHUB_PORT}
+      - PROXY_TARGET_PORT=${JUPYHUB_PORT_INTERNAL}
       - JUPYTERHUB_DOMAIN=hub-analytics.blitzun.com
       - OAUTH_CALLBACK_URL=${OAUTH_CALLBACK_URL}
       - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
@@ -50,7 +50,7 @@ services:
     volumes:
       - ./certbot/www/:/var/www/certbot/:rw
       - ./certbot/conf/:/etc/letsencrypt/:rw
-    command: certonly --webroot --webroot-path=/var/www/certbot --agree-tos --no-eff-email --staging -d ${JUPYTERHUB_DOMAIN}
+    command: certonly --webroot --webroot-path=/var/www/certbot --agree-tos --no-eff-email --staging -d hub-analytics.blitzun.com
     networks:
       - jupyterhub-network
 
