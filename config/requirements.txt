@@ -1,14 +1,23 @@
-# jupyter server deps
-oauthenticator
+# Esenciales para JupyterHub y entorno de trabajo
+jupyterhub
 jupyter
+oauthenticator
 
-# additional libraries
-#matplotlib
-#numba
+# Bibliotecas para análisis de datos
+matplotlib
 numpy
 pandas
-#protobuf
-#scikit-image
-#scikit-learn
-#scipy
+polars  # Agregado Polars para manipulación eficiente de datos
+
+# Bibliotecas para procesamiento de datos y machine learning
+scikit-learn
+scipy
 seaborn
+numba
+
+# Bibliotecas para procesamiento distribuido
+pyspark  # Agregado PySpark para procesamiento en clúster
+
+# Opcionales, si se necesita
+scikit-image
+protobuf
