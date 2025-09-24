@@ -1,23 +1,63 @@
-version: "3.3"
-services:
+version: '3.7'
 
+services:
   jupyterhub:
     container_name: 'jupyterhub'
     build:
       context: .
       dockerfile: docker/jupyterhub.Dockerfile
-    environment:
-      PYTHONUNBUFFERED: 1
-      JUPYTERHUB_IP: ${JUPYTERHUB_IP}
-      JUPYTERHUB_PORT: ${JUPYTERHUB_PORT}
-      JUPYTERHUB_CONTAINER_NAME: ${JUPYTERHUB_CONTAINER_NAME}
-      JUPYTERHUB_DATA: ${JUPYTERHUB_DATA}
-      ADMIN_USERS:
-      OAUTH_CALLBACK_URL:
-      OAUTH_CLIENT_ID:
-      OAUTH_CLIENT_SECRET:
+    ports:
+      - "8084:8084"
     volumes:
-      - "${JUPYTERHUB_DATA}:${JUPYTERHUB_DATA}"
-      - ${JUPYTERHUB_USERS_HOME}:/home
-    network_mode: host
+      - jupyterhub-data:/data
+      - jupyterhub-users:/home
+    environment:
+      - JUPYTERHUB_DATA=/data
+      - JUPYTERHUB_USERS_HOME=/home
+      - ADMIN_USERS=${ADMIN_USERS}
+    networks:
+      - jupyterhub-network
     restart: always
+
+  proxy:
+    container_name: 'proxy'
+    build:
+      context: .
+      dockerfile: docker/nginx.Dockerfile
+    depends_on:
+      - jupyterhub
+    ports:
+      - "${JUPYTERHUB_PORT}:80"
+      - "443:443"
+    volumes:
+      - ./certbot/www:/var/www/certbot/:ro
+      - ./certbot/conf/:/etc/nginx/ssl/:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    environment:
+      - PROXY_TARGET_PORT=8084
+      - PROXY_PUBLIC_PORT=${JUPYTERHUB_PORT}
+      - JUPYTERHUB_DOMAIN=hub-analytics.blitzun.com
+      - OAUTH_CALLBACK_URL=${OAUTH_CALLBACK_URL}
+      - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
+      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
+    networks:
+      - jupyterhub-network
+    restart: always
+
+  certbot:
+    image: certbot/certbot
+    container_name: 'certbot'
+    volumes:
+      - ./certbot/www/:/var/www/certbot/:rw
+      - ./certbot/conf/:/etc/letsencrypt/:rw
+    command: certonly --webroot --webroot-path=/var/www/certbot --agree-tos --no-eff-email --staging -d ${JUPYTERHUB_DOMAIN}
+    networks:
+      - jupyterhub-network
+
+volumes:
+  jupyterhub-data:
+  jupyterhub-users:
+
+networks:
+  jupyterhub-network:
+    name: jupyterhub-network
